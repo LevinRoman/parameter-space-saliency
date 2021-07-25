@@ -1,0 +1,15 @@
+click==7.1.2
+matplotlib 
+numpy 
+opencv-python==4.5.1.48
+pandas==1.2.1
+pathy==0.4.0
+PyYAML==5.4.1
+scikit-learn==0.24.1
+scipy
+seaborn 
+torch==1.7.1
+torchvision==0.8.2
+tqdm 
+urllib3==1.26.3
+
