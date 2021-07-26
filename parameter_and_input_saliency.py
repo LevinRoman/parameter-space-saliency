@@ -96,8 +96,8 @@ def save_gradients(grads_to_save, args, experiment, reference_image, inv_transfo
     heatmap_superimposed = show_heatmap_on_image(reference_image_to_compare.detach().cpu().numpy(), gradients_heatmap)
     plt.imshow(heatmap_superimposed)
     plt.axis('off')
-    plt.savefig(os.path.join(save_path, 'input_saliency_heatmap_{}.pdf'.format(save_name)), bbox_inches='tight')
-    print('Input space saliency saved to {} \n'.format(os.path.join(save_path, 'input_saliency_heatmap_{}.pdf'.format(save_name))))
+    plt.savefig(os.path.join(save_path, 'input_saliency_heatmap_{}.png'.format(save_name)), bbox_inches='tight')
+    print('Input space saliency saved to {} \n'.format(os.path.join(save_path, 'input_saliency_heatmap_{}.png'.format(save_name))))
     return
 
 def compute_input_space_saliency(reference_inputs, reference_targets, net, args, experiment,
@@ -346,6 +346,6 @@ if __name__ == '__main__':
     ax.set_ylabel('Saliency')
     save_name = args.reference_id if args.reference_id is not None else args.image_path.split('/')[-1].split('.')[0]
     save_name += '_' + args.model
-    fig.savefig('figures/filter_saliency_{}.pdf'.format(save_name))
-    print('Filter saliency saved to figures/filter_saliency_{}.pdf'.format(save_name))
+    fig.savefig('figures/filter_saliency_{}.png'.format(save_name))
+    print('Filter saliency saved to figures/filter_saliency_{}.png'.format(save_name))
 #Run this: python3 input_saliency.py --reference_id 107 --k_salient 10
