@@ -1,4 +1,4 @@
-from comet_ml import Experiment
+# from comet_ml import Experiment
 import yaml
 import urllib
 import pandas as pd
@@ -17,18 +17,18 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-from utils import show_heatmap_on_image, test_and_find_incorrectly_classified
+from utils import show_heatmap_on_image, test_and_find_incorrectly_classified, transform_raw_image
 import cv2
 import warnings
 import tqdm
-from saliency.saliency_model_backprop import SaliencyModel, find_testset_saliency
+from parameter_saliency.saliency_model_backprop import SaliencyModel, find_testset_saliency
 
 parser = argparse.ArgumentParser(description='Input Space Saliency')
 parser.add_argument('--model', default='resnet50', type=str, help='name of architecture')
 parser.add_argument('--data_to_use', default='ImageNet', type=str, help='which dataset to use (ImageNet or ImageNet_A)')
 
 # Logging
-parser.add_argument('--project_name', default='input_space_saliency', type=str, help='project name for Comet ML')
+# parser.add_argument('--project_name', default='input_space_saliency', type=str, help='project name for Comet ML')
 parser.add_argument('--figure_folder_name', default='input_space_saliency', type=str, help='directory to save figures')
 
 # Modes for the signed saliency model: by default, regular loss on the given example is used.
@@ -41,22 +41,28 @@ parser.add_argument('--logit_difference', action='store_true', help='Use logit d
 #Boosting for input-space saliency
 parser.add_argument('--boost_factor', default=100.0, type=float, help='boost factor for salient filters')
 parser.add_argument('--k_salient', default=10, type=int, help='num filters to boost')
+
 parser.add_argument('--compare_random', action='store_true',
                     help='whether to boost k random filters for comparison')
-parser.add_argument('--least_salient', action='store_true',
-                    help='whether to boost k least salient filters for comparison to frying most salient')
+# parser.add_argument('--least_salient', action='store_true',
+#                     help='whether to boost k least salient filters for comparison to frying most salient')
 
-#Smoothing input space saliency (SmoothGrad-like, should be off at all times)
+#Smoothing input space saliency (SmoothGrad-like, should be set to default, off at all times)
 parser.add_argument('--noise_iters', default=1, type=int, help='number of noises to average across')
 parser.add_argument('--noise_percent', default=0, type=float, help='std of the noises')
 
 #Pick reference image
-parser.add_argument('--reference_id', default=107, type=int, help='image id from valset to use')
+#Either using an image from raw_images/ folder
+parser.add_argument('--image_path', default='raw_images/great_white_shark_mispred_as_killer_whale.jpeg', type=str, help='image id from valset to use')
+parser.add_argument('--image_target_label', default=None, type=int, help='image id from valset to use')
+#Or using the i-th image from ImageNet validation set, for this ImageNet validation set path must be specified
+parser.add_argument('--reference_id', default=None, type=int, help='image id from valset to use') #107 for great white shark
 
 #PATHS
-parser.add_argument('--imagenet_path', default='', type=str, help='Imagenet path')
-parser.add_argument('--testset_stats_path', default='', type=str, help='filter saliency over the testset (where to save)')
-parser.add_argument('--inference_file_path', default='', type=str, help='where to save network inference results')
+parser.add_argument('--imagenet_val_path', default='/home/rilevin/data/ImageNet/val', type=str, help='ImageNet validation set path')
+# parser.add_argument('--testset_stats_path', default='', type=str, help='filter saliency over the testset (where to save)')
+# parser.add_argument('--inference_file_path', default='', type=str, help='where to save network inference results')
+
 def save_gradients(grads_to_save, args, experiment, reference_image, inv_transform_test):
     grads_to_save, _ = grads_to_save.max(dim=1)
     grads_to_save = grads_to_save.detach().cpu().numpy().reshape((224, 224))
@@ -73,7 +79,10 @@ def save_gradients(grads_to_save, args, experiment, reference_image, inv_transfo
     save_path = os.path.join('figures', args.figure_folder_name)
     if not os.path.exists(save_path):
         os.mkdir(save_path)
-    plt.savefig(os.path.join(save_path, 'input_space_saliency_{}.pdf'.format(args.reference_id)))
+    save_name = args.reference_id if args.reference_id is not None else args.image_path.split('/')[-1].split('.')[0]
+    save_name += '_' + args.model
+    plt.axis('off')
+    # plt.savefig(os.path.join(save_path, 'input_space_saliency_{}.pdf'.format(save_name)), bbox_inches='tight')
 
 
     grads_to_save = (grads_to_save - np.min(grads_to_save)) / (np.max(grads_to_save) - np.min(grads_to_save))
@@ -87,10 +96,13 @@ def save_gradients(grads_to_save, args, experiment, reference_image, inv_transfo
     heatmap_superimposed = show_heatmap_on_image(reference_image_to_compare.detach().cpu().numpy(), gradients_heatmap)
     plt.imshow(heatmap_superimposed)
     plt.axis('off')
-    plt.savefig(os.path.join(save_path, 'input_saliency_heatmap_{}.pdf'.format(args.reference_id)), bbox_inches='tight')
+    plt.savefig(os.path.join(save_path, 'input_saliency_heatmap_{}.pdf'.format(save_name)), bbox_inches='tight')
+    print('Input space saliency saved to {} \n'.format(os.path.join(save_path, 'input_saliency_heatmap_{}.pdf'.format(save_name))))
     return
 
-def compute_input_space_saliency(reference_inputs, reference_targets, net, args, experiment, testset_mean_stat=None, testset_std_stat=None, inv_transform_test = None, readable_labels = None):
+def compute_input_space_saliency(reference_inputs, reference_targets, net, args, experiment,
+                                 testset_mean_stat=None, testset_std_stat=None, inv_transform_test = None,
+                                 readable_labels = None):
     #First, log things
     with torch.no_grad():
         ref_image_to_log = inv_transform_test(reference_inputs[0].detach().cpu()).permute(1, 2, 0)
@@ -99,6 +111,15 @@ def compute_input_space_saliency(reference_inputs, reference_targets, net, args,
         reference_outputs = net(reference_inputs)
         _, reference_predicted = reference_outputs.max(1)
         # Log classes:
+        print("""\n
+        Image target label: {}
+        Image target class name: {}
+        Image predicted label: {}
+        Image predicted class name: {}\n
+        """.format(reference_targets[0].item(),
+            readable_labels[reference_targets[0].item()],
+            reference_predicted[0].item(),
+            readable_labels[reference_predicted[0].item()]))
 
     #Compute filter saliency
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -115,14 +136,15 @@ def compute_input_space_saliency(reference_inputs, reference_targets, net, args,
 
         perturbed_outputs = net(perturbed_inputs)
         _, perturbed_predicted = perturbed_outputs.max(1)
-        print(readable_labels[int(perturbed_predicted[0])])
+        # print(readable_labels[int(perturbed_predicted[0])])
 
         #Backprop to the input
         perturbed_inputs.requires_grad_()
         #Find the true saliency:
-        filter_saliency = filter_saliency_model(perturbed_inputs, reference_targets, testset_mean_abs_grad=testset_mean_stat,
-                                             testset_std_abs_grad=testset_std_stat).to(device)
-
+        filter_saliency = filter_saliency_model(
+            perturbed_inputs, reference_targets,
+            testset_mean_abs_grad=testset_mean_stat,
+            testset_std_abs_grad=testset_std_stat).to(device)
 
         #Find the top-k salient filters
         if args.compare_random:
@@ -177,6 +199,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     experiment = None #Used to be a comet_ml experiment for logging
 
+    model_helpers_root_path = os.path.join('helper_objects', args.model)
+    if not os.path.exists(model_helpers_root_path):
+        print('No helper objects directory exists for this model, creating one\n')
+        os.mkdir(model_helpers_root_path)
+
     print('==> Preparing data..')
 
     transform_test = transforms.Compose([
@@ -193,9 +220,10 @@ if __name__ == '__main__':
 
     # ImageNet validation set
     if args.data_to_use == 'ImageNet':
-        images_path = args.imagenet_path
+        images_path = args.imagenet_val_path
     else:
         raise NotImplementedError
+
     testset = torchvision.datasets.ImageFolder(images_path, transform=transform_test)
     # Downloading imagenet 1000 classes list of readable labels
     label_url = urllib.request.urlopen(
@@ -243,10 +271,8 @@ if __name__ == '__main__':
     print('Total filters:', total)
     print('Total layers:', len(layer_to_filter_id))
 
-
     #Load inference files
-    #
-    inference_file = args.inference_file_path#
+    inference_file = os.path.join(model_helpers_root_path, 'ImageNet_val_inference_results_{:s}.pth'.format(args.model))
     if os.path.isfile(inference_file):
         inf_results = torch.load(inference_file)
         incorrect_id = inf_results['incorrect_id']
@@ -259,18 +285,17 @@ if __name__ == '__main__':
                     'incorrect_predictions': incorrect_predictions,
                     'correct_id': correct_id}, inference_file)
 
-    if args.logit:
-        folder = 'logit'
-        warnings.warn('All final experiments were done with args.logit off')
-    elif args.logit_difference:
-        folder = 'logit_difference'
-        warnings.warn('All final experiments were done with args.logit_difference off')
-    else:
-        folder = 'loss'
+    # if args.logit:
+    #     folder = 'logit'
+    #     warnings.warn('All final experiments were done with args.logit off')
+    # elif args.logit_difference:
+    #     folder = 'logit_difference'
+    #     warnings.warn('All final experiments were done with args.logit_difference off')
+    # else:
+    #     folder = 'loss'
 
     #Load valset stats files
-
-    filter_stats_file = args.testset_stats_path
+    filter_stats_file = os.path.join(model_helpers_root_path, 'ImageNet_val_saliency_stat_{:s}_filter_wise.pth'.format(args.model))
     if os.path.isfile(filter_stats_file):
         filter_stats = torch.load(filter_stats_file)
         filter_testset_mean_abs_grad = filter_stats['mean']
@@ -280,9 +305,24 @@ if __name__ == '__main__':
         filter_testset_mean_abs_grad, filter_testset_std_abs_grad = find_testset_saliency(net, testset, 'filter_wise', args)
         torch.save({'mean': filter_testset_mean_abs_grad, 'std': filter_testset_std_abs_grad}, filter_stats_file)
 
-    reference_image, reference_target = testset.__getitem__(args.reference_id)
-    reference_target = torch.tensor(reference_target).unsqueeze(0)
-    reference_image.unsqueeze_(0)
+    if args.reference_id is None:
+        print("""\n
+        Using image {}
+        and target label {}\n
+        """.format(args.image_path, args.image_target_label))
+        reference_image = transform_raw_image(args.image_path).unsqueeze(0)
+        reference_target = torch.tensor(int(args.image_target_label)).unsqueeze(0)
+    else:
+        print("""\n
+        Using reference_id to select the image for the experiment. 
+        Working with {}-th image from ImageNet validation set and its target label.
+        If this was intended, please make sure to specify path to ImageNet validation set.
+        If using an image from raw_images/ was intended, please do not specify 
+        --reference_id and use --image_target_label and --image_path args instead.
+        """.format(args.reference_id))
+        reference_image, reference_target = testset.__getitem__(args.reference_id)
+        reference_target = torch.tensor(reference_target).unsqueeze(0)
+        reference_image.unsqueeze_(0)
 
 
     grads_to_save, filter_saliency = compute_input_space_saliency(reference_image, reference_target, net, args, experiment, filter_testset_mean_abs_grad, filter_testset_std_abs_grad, inv_transform_test, readable_labels)
@@ -304,5 +344,8 @@ if __name__ == '__main__':
     ax.get_legend().get_frame().set_alpha(0.0)
     ax.set_xlabel('Filter ID')
     ax.set_ylabel('Saliency')
-    fig.savefig('figures/filter_saliency.pdf')
+    save_name = args.reference_id if args.reference_id is not None else args.image_path.split('/')[-1].split('.')[0]
+    save_name += '_' + args.model
+    fig.savefig('figures/filter_saliency_{}.pdf'.format(save_name))
+    print('Filter saliency saved to figures/filter_saliency_{}.pdf'.format(save_name))
 #Run this: python3 input_saliency.py --reference_id 107 --k_salient 10

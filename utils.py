@@ -21,6 +21,24 @@ from PIL import Image, ImageFilter
 # import matplotlib.cm as mpl_color_map
 from torch.autograd import Variable
 import cv2
+import torchvision.transforms as transforms
+from PIL import Image
+
+
+def transform_raw_image(image_path):
+    # raw_image = cv2.imread(image_path)
+    # with open(image_path, 'rb') as f:
+    # img = Image.open(image_path)
+    raw_image = Image.open(image_path).convert('RGB')
+    transform_test = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),  ## ImageNet statistics
+    ])
+    # transformed_image = transform_test(torch.from_numpy(raw_image[..., ::-1].copy()))
+    transformed_image = transform_test(raw_image)
+    return transformed_image
 
 
 def get_mean_and_std(dataset):

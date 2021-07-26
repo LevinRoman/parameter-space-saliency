@@ -35,15 +35,15 @@ class SaliencyModel(nn.Module):
 
         if self.logit:
             raise NotImplementedError
-            loss = outputs[0][int(targets[0])]
+            #loss = outputs[0][int(targets[0])]
         elif self.logit_difference:
             raise NotImplementedError
-            loss = outputs[0][int(targets[0])] - outputs[0][int(target_to_subtract[0])]
+            #loss = outputs[0][int(targets[0])] - outputs[0][int(target_to_subtract[0])]
         else:
             loss = self.criterion(outputs, targets)
 
 
-        gradients = autograd.grad(loss, self.net.parameters(), create_graph=True)
+        gradients = autograd.grad(loss, self.net.parameters(), create_graph=True, allow_unused=True)
 
         filter_grads = []
         for i in range(len(gradients)):  # Filter-wise aggregation
@@ -64,7 +64,7 @@ class SaliencyModel(nn.Module):
         if self.mode == 'naive':
             return naive_saliency
         if self.mode == 'std':
-            testset_std_abs_grad[testset_std_abs_grad <= 1e-14] = 1  # This should fix nans in the resulting saliency
+            testset_std_abs_grad[testset_std_abs_grad <= 1e-14] = 1  # This should fix nans in the resulting parameter_saliency
             std_saliency = (naive_saliency - testset_mean_abs_grad.to(self.device)) / testset_std_abs_grad.to(
                 self.device)
             return std_saliency
@@ -74,7 +74,7 @@ class SaliencyModel(nn.Module):
             return norm_saliency
 
 def find_testset_saliency(net, testset, aggregation, args):
-    """find_saliency is a basic saliency method: could be naive, could be averaging across filters, tensors, layers, etc
+    """find_saliency is a basic parameter_saliency method: could be naive, could be averaging across filters, tensors, layers, etc
     Return average magnitude of gradient across samples in the testset and std of that"""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # This local testloader should have batch size 1, but we can do more for quick debugging
