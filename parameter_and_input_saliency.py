@@ -54,7 +54,7 @@ parser.add_argument('--noise_percent', default=0, type=float, help='std of the n
 #Pick reference image
 #Either using an image from raw_images/ folder
 parser.add_argument('--image_path', default='raw_images/great_white_shark_mispred_as_killer_whale.jpeg', type=str, help='image id from valset to use')
-parser.add_argument('--image_target_label', default=None, type=int, help='image id from valset to use')
+parser.add_argument('--image_target_label', default=None, type=int, help='image label (number from 0 to 999 according to ImageNet labels)')
 #Or using the i-th image from ImageNet validation set, for this ImageNet validation set path must be specified
 parser.add_argument('--reference_id', default=None, type=int, help='image id from valset to use') #107 for great white shark
 
@@ -357,7 +357,6 @@ if __name__ == '__main__':
 #Run this: python3 input_saliency.py --reference_id 107 --k_salient 10
 #Run this: python3 parameter_and_input_saliency.py --image_path raw_images/great_white_shark_mispred_as_killer_whale.jpeg --image_target_label 2
 #TODO:
-#-rearrange args
 #-fix readme
 #-give github link in the paper
 #-upload preprint to arxiv
