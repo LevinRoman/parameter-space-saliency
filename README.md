@@ -33,6 +33,7 @@ The resulting plots (input space colormap and filter saliency plot) will be save
 
 Demo
 -----
+The demo raw image is in /raw_images. The results are in /figures.
 
 Project Organization
 ------------
