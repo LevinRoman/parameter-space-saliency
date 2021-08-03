@@ -79,7 +79,7 @@ def save_gradients(grads_to_save, args, experiment, reference_image, inv_transfo
     save_path = os.path.join('figures', args.figure_folder_name)
     if not os.path.exists(save_path):
         os.mkdir(save_path)
-    save_name = args.reference_id if args.reference_id is not None else args.image_path.split('/')[-1].split('.')[0]
+    save_name = str(args.reference_id) if args.reference_id is not None else args.image_path.split('/')[-1].split('.')[0]
     save_name += '_' + args.model
     plt.axis('off')
     # plt.savefig(os.path.join(save_path, 'input_space_saliency_{}.pdf'.format(save_name)), bbox_inches='tight')
@@ -237,6 +237,12 @@ if __name__ == '__main__':
 
     if args.model == 'resnet50':
         net = torchvision.models.resnet50(pretrained=True)
+    elif args.model == 'vgg19':
+        net = torchvision.models.vgg19(pretrained=True)
+    elif args.model == 'densenet121':
+        net = torchvision.models.densenet121(pretrained=True)
+    elif args.model == 'inception_v3':
+        net = torchvision.models.inception_v3(pretrained=True)
     else:
         #Other torchvision models should be inserted here
         raise NotImplementedError
@@ -344,8 +350,14 @@ if __name__ == '__main__':
     ax.get_legend().get_frame().set_alpha(0.0)
     ax.set_xlabel('Filter ID')
     ax.set_ylabel('Saliency')
-    save_name = args.reference_id if args.reference_id is not None else args.image_path.split('/')[-1].split('.')[0]
+    save_name = str(args.reference_id) if args.reference_id is not None else args.image_path.split('/')[-1].split('.')[0]
     save_name += '_' + args.model
     fig.savefig('figures/filter_saliency_{}.png'.format(save_name))
     print('Filter saliency saved to figures/filter_saliency_{}.png'.format(save_name))
 #Run this: python3 input_saliency.py --reference_id 107 --k_salient 10
+#Run this: python3 parameter_and_input_saliency.py --image_path raw_images/great_white_shark_mispred_as_killer_whale.jpeg --image_target_label 2
+#TODO:
+#-rearrange args
+#-fix readme
+#-give github link in the paper
+#-upload preprint to arxiv
