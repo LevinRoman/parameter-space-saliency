@@ -17,11 +17,10 @@ The script input_saliency.py computes both the parameter-saliency profile of an 
 
 To compute the parameter saliency profile for a given image, the script accepts either 
 * path to the raw image + image target label
-* reference_id -- the index of the given image in ImageNet validation set.
-
 ```bash
 python3 parameter_and_input_saliency.py --model resnet50 --image_path raw_images/great_white_shark_mispred_as_killer_whale.jpeg --image_target_label 2
 ```
+* reference_id -- the index of the given image in ImageNet validation set.
 ```bash
 python3 input_saliency.py --reference_id 107 --k_salient 10
 ```
