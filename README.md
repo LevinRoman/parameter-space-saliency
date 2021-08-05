@@ -22,12 +22,12 @@ python3 parameter_and_input_saliency.py --model resnet50 --image_path raw_images
 ```
 * or reference_id -- the index of the given image in ImageNet validation set.
 ```bash
-python3 input_saliency.py --reference_id 107 --k_salient 10
+python3 parameter_and_input_saliency.py --reference_id 107 --k_salient 10
 ```
 
 here --reference_id specifies the image id from ImageNet validation set
 
---k_salient specifies the number of top salient filters to use
+--k_salient specifies the number of top salient filters to use for the input-space visualization
 
 The resulting plots (input space colormap and filter saliency plot) will be saved to /figures
 
