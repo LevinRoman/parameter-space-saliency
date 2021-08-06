@@ -59,7 +59,7 @@ parser.add_argument('--image_target_label', default=None, type=int, help='image 
 parser.add_argument('--reference_id', default=None, type=int, help='image id from valset to use') #107 for great white shark
 
 #PATHS
-parser.add_argument('--imagenet_val_path', default='/home/rilevin/data/ImageNet/val', type=str, help='ImageNet validation set path')
+parser.add_argument('--imagenet_val_path', default='<insert-ImageNet-val-path-here>', type=str, help='ImageNet validation set path')#/home/rilevin/data/ImageNet/val
 # parser.add_argument('--testset_stats_path', default='', type=str, help='filter saliency over the testset (where to save)')
 # parser.add_argument('--inference_file_path', default='', type=str, help='where to save network inference results')
 
@@ -224,7 +224,14 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError
 
-    testset = torchvision.datasets.ImageFolder(images_path, transform=transform_test)
+    if images_path != '<insert-ImageNet-val-path-here>':
+        testset = torchvision.datasets.ImageFolder(images_path, transform=transform_test)
+    else:
+        print("""
+               ImageNet validation set path is not specified.
+               The code will only work with raw --image_path and --image_target_label specified.
+               In this scenario, --reference_id must be None.
+              """)
     # Downloading imagenet 1000 classes list of readable labels
     label_url = urllib.request.urlopen(
         "https://gist.githubusercontent.com/yrevar/942d3a0ac09ec9e5eb3a/raw/238f720ff059c1f82f368259d1ca4ffa5dd8f9f5/imagenet1000_clsidx_to_labels.txt")
@@ -356,7 +363,3 @@ if __name__ == '__main__':
     print('Filter saliency saved to figures/filter_saliency_{}.png'.format(save_name))
 #Run this: python3 input_saliency.py --reference_id 107 --k_salient 10
 #Run this: python3 parameter_and_input_saliency.py --image_path raw_images/great_white_shark_mispred_as_killer_whale.jpeg --image_target_label 2
-#TODO:
-#-fix readme
-#-give github link in the paper
-#-upload preprint to arxiv
