@@ -51,9 +51,16 @@ class SaliencyModel(nn.Module):
 
             if self.aggregation == 'filter_wise':
                 if len(gradients[i].size()) == 4:  # If conv layer
-                    filter_grads.append(gradients[i].mean(-1).mean(-1).mean(-1))
+                    if not self.signed:
+                        #first take abs and then aggregate
+                        filter_grads.append(gradients[i].mean(-1).mean(-1).mean(-1).abs())
+                    else:
+                        filter_grads.append(gradients[i].mean(-1).mean(-1).mean(-1))
             if self.aggregation == 'parameter_wise':
-                filter_grads.append(gradients[i].view(-1))
+                if not self.signed:
+                    filter_grads.append(gradients[i].view(-1).abs())
+                else:
+                    filter_grads.append(gradients[i].view(-1))
             if self.aggregation == 'tensor_wise':
                 raise NotImplementedError
 
