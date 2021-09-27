@@ -433,12 +433,6 @@ if __name__ == '__main__':
                     'incorrect_predictions': incorrect_predictions,
                     'correct_id': correct_id}, inference_file)
 
-    # if args.logit:
-    #     folder = 'logit'
-    # elif args.logit_difference:
-    #     folder = 'logit_difference'
-    # else:
-    #     folder = 'loss'
 
     filter_stats_file = os.path.join(model_helpers_root_path, 'ImageNet_val_saliency_stat_{:s}_filter_wise.pth'.format(args.model))
     if os.path.isfile(filter_stats_file):

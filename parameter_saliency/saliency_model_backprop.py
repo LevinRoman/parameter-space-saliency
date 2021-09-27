@@ -52,7 +52,7 @@ class SaliencyModel(nn.Module):
             if self.aggregation == 'filter_wise':
                 if len(gradients[i].size()) == 4:  # If conv layer
                     if not self.signed:
-                        #first take abs and then aggregate
+                        #first take abs and then aggregate grads
                         filter_grads.append(gradients[i].abs().mean(-1).mean(-1).mean(-1))
                     else:
                         filter_grads.append(gradients[i].mean(-1).mean(-1).mean(-1))
