@@ -1,0 +1,7 @@
+*.pth
+*.sh
+*.txt
+cache/
+dataset/
+__pycache__/
+*.png
